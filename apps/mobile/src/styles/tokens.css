@@ -1,0 +1,29 @@
+:root {
+  --color-ink: #17211b;
+  --color-muted: #667069;
+  --color-line: #d7ddd8;
+  --color-line-strong: #aeb7b0;
+  --color-paper: #f3f5f1;
+  --color-surface: #ffffff;
+  --color-work: #f2c94c;
+  --color-work-soft: #fff5cf;
+  --color-success: #216e4e;
+  --color-success-soft: #e9f5ee;
+  --color-danger: #aa3f32;
+  --color-danger-soft: #faece9;
+  --color-info: #295f7d;
+  --color-info-soft: #eaf3f8;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --radius-control: 6px;
+  --radius-surface: 8px;
+  --touch-target: 44px;
+  --appbar-height: 60px;
+  --connection-height: 36px;
+  --mobile-nav-height: 66px;
+  --sidebar-width: 248px;
+}

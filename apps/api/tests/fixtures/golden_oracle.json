@@ -1,0 +1,75 @@
+{
+  "classifications": {
+    "change_order.docx": "change_order",
+    "contract.pdf": "contract",
+    "invoice.md": "invoice",
+    "site_report.txt": "site_report"
+  },
+  "facts": [
+    {
+      "coordinate": {"kind": "pdf", "page": 1},
+      "fact_key": "contract_value",
+      "quoted_text": "Contract value: USD 1000000",
+      "source": "contract.pdf",
+      "unit": "USD",
+      "value": 1000000
+    },
+    {
+      "coordinate": {"kind": "pdf", "page": 1},
+      "fact_key": "approved_change_value",
+      "quoted_text": "Approved change value: USD 100000",
+      "source": "contract.pdf",
+      "unit": "USD",
+      "value": 100000
+    },
+    {
+      "coordinate": {"kind": "docx", "paragraph": 2},
+      "fact_key": "approved_change_value",
+      "quoted_text": "Approved change value: USD 125000",
+      "source": "change_order.docx",
+      "unit": "USD",
+      "value": 125000
+    },
+    {
+      "coordinate": {"column": 1, "kind": "docx", "row": 1, "table": 1},
+      "fact_key": "revised_completion_date",
+      "quoted_text": "Revised completion date: 2027-03-15",
+      "source": "change_order.docx",
+      "unit": null,
+      "value": "2027-03-15"
+    },
+    {
+      "coordinate": {"kind": "text", "line_end": 2, "line_start": 2},
+      "fact_key": "installed_quantity",
+      "quoted_text": "Installed quantity: 420 m",
+      "source": "site_report.txt",
+      "unit": "m",
+      "value": 420
+    },
+    {
+      "coordinate": {"kind": "markdown", "line_end": 2, "line_start": 2},
+      "fact_key": "invoice_amount",
+      "quoted_text": "Invoice amount: USD 122500",
+      "source": "invoice.md",
+      "unit": "USD",
+      "value": 122500
+    }
+  ],
+  "contradictions": [
+    {
+      "fact_key": "approved_change_value",
+      "values": [100000, 125000]
+    }
+  ],
+  "excluded_claims": [
+    {
+      "fact_key": "savings_projection",
+      "reason": "unsupported",
+      "source": "contract.pdf",
+      "value": "USD 20000"
+    }
+  ],
+  "failed_rules": ["change-cap", "completion-deadline"],
+  "passed_rules": ["contract-floor", "invoice-match", "quantity-floor"],
+  "rule_version": "rules-2026-08-23"
+}

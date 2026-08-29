@@ -1,0 +1,9 @@
+packages:
+  - apps/mobile
+  - extensions/word
+  - packages/offline-queue
+  - packages/api-client
+
+allowBuilds:
+  esbuild: true
+  msw: true

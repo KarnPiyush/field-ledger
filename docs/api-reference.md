@@ -1,0 +1,49 @@
+# API Reference
+
+The generated contract is [OpenAPI JSON](../apps/api/openapi.json). Project mutations enforce project authorization and explicit idempotency where applicable; local demo bootstrap is separately authenticated and disabled by default. Errors use RFC 9457-style problem details. `X-Correlation-ID` is accepted and returned.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health/live` | Process liveness |
+| `GET` | `/health/ready` | Database readiness |
+| `POST` | `/api/v1/auth/demo-session` | Mint a configured local demo identity; disabled by default |
+| `POST` | `/api/v1/demo/seed` | Idempotently seed the authenticated deterministic demo actor; disabled by default |
+| `GET`, `POST` | `/api/v1/projects` | List or create an authorized project |
+| `POST` | `/api/v1/projects/{project_id}/sources` | Ingest a fixture source into an immutable version |
+| `POST` | `/api/v1/projects/{project_id}/runs` | Start an idempotent workflow run |
+| `GET` | `/api/v1/runs/{run_id}` | Inspect run status and current stage |
+| `GET` | `/api/v1/projects/{project_id}/reviews` | List accessible review batches |
+| `GET` | `/api/v1/reviews/{batch_id}` | Read one batch and its dependency vector |
+| `POST` | `/api/v1/reviews/{batch_id}/confirmation` | Reserve a short-lived UI confirmation |
+| `POST` | `/api/v1/reviews/{batch_id}/decisions` | Apply an ordered decision command after preflight |
+| `GET` | `/api/v1/projects/{project_id}/audit` | List authoritative audit records |
+| `POST` | `/api/v1/documents/{document_id}/edits` | Start a provider-backed proposal edit |
+| `GET` | `/api/v1/documents/{document_id}/edits/by-idempotency-key` | Reconcile an edit by its original `Idempotency-Key` without mutating provider state |
+| `POST` | `/api/v1/documents/{document_id}/exports` | Export an approved document artifact |
+| `GET` | `/api/v1/ops/provider-jobs/{job_id}` | Read durable provider job state |
+| `POST` | `/api/v1/ops/provider-jobs/{job_id}/poll` | Advance or reconcile a provider job |
+
+## Review Mutation
+
+The batch identifier is in the URL, and the stable key is sent in the required `Idempotency-Key` header. The request body contains only ordered item decisions and a UI confirmation token. The server-issued confirmation token is bound to the server's current dependency hash set; clients do not submit or choose that value. The service verifies membership, role, confirmation binding, and every dependency before mutation.
+
+Outcomes are:
+
+- `completed`: the authoritative decision commit and audit exist.
+- `processing`, `review_ready`, or `preview_ready`: provider work is still active or requires human proposal review.
+- `failed` or `cancelled`: provider work ended without a completed decision result.
+- `stale`: one or more dependency hashes changed; zero decisions applied.
+- `reconciliation_required`: the outbound result is ambiguous and must be read before retry.
+- problem response: validation, authorization, timeout, or provider failure with a correlation identifier.
+
+## Local Demo Bootstrap
+
+The browser posts only `{ "identity": "reviewer" }` to `/api/v1/auth/demo-session`; the Vite proxy adds `X-FieldLedger-Demo-Bootstrap` from its server process, so the bootstrap secret is not compiled into browser JavaScript. The returned bearer token authenticates `/api/v1/demo/seed`, which also requires a stable `Idempotency-Key` header and an empty JSON body. `DemoSeedResponse` contains `project_id`, `workflow_run_id`, `review_batch_id`, `document_id`, `status`, and `replayed`. Both routes are available only in explicitly configured local deterministic mode.
+
+## Provider Lifecycle
+
+Provider states normalize variants such as `continue_prompt`, `PreviewReady`, `completed`, `failed`, `cancelled`, and unknown/timeout states. A review-ready result clears loading and opens human review. An unknown result never claims success.
+
+## Generated Client
+
+Run `pnpm api:check` to prove [the TypeScript client](../packages/api-client/src/generated.ts) matches the checked OpenAPI document. Regenerate intentionally with `pnpm api:generate`.

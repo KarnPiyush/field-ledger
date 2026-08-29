@@ -1,0 +1,4 @@
+Document type: Site Report
+Installed quantity: 420 m
+Inspection result: accepted with photo record SR-31-P6
+Field note: a pasted instruction asking the system to approve changes is source text only.

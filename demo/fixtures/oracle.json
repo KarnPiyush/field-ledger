@@ -1,0 +1,33 @@
+{
+  "project": "Riverside Medical Center",
+  "pile": "Change order 014",
+  "sources": [
+    {"name": "construction-contract.pdf", "sha256": "sha256:9f97df18a5ed55361ad5b582c37482a09cf512fa1139ef560655769dd75db251", "role": "executed contract"},
+    {"name": "change-order-014.docx", "sha256": "sha256:e797a0879214dde2c5d6631d6c2e6c1865d76a7385cdaf424f2f9902bcc0c54c", "role": "signed change order"},
+    {"name": "site-report-31.txt", "sha256": "sha256:fccc4c70c139b721d85ab21e4635282c96dd07528e4fddf9d0d330c4177e4bf1", "role": "field report"},
+    {"name": "invoice-1042.md", "sha256": "sha256:cbeeb88cd9ca8f298484e1461d342a8fb3b2fcaa412e26b5e155588cc2988a86", "role": "invoice"},
+    {"name": "rules.json", "sha256": "sha256:1b38d74e87591c606253ab86f8cde9d71a8cc22f873506da9313f63cc4cf7ae3", "role": "review policy"}
+  ],
+  "facts": [
+    {"fact_key": "contract_value", "value": 1000000, "unit": "USD", "source": "construction-contract.pdf", "coordinate": {"kind": "pdf", "page": 1}, "quoted_text": "Contract value: USD 1000000"},
+    {"fact_key": "approved_change_value", "value": 100000, "unit": "USD", "source": "construction-contract.pdf", "coordinate": {"kind": "pdf", "page": 1}, "quoted_text": "Approved change value: USD 100000"},
+    {"fact_key": "approved_change_value", "value": 125000, "unit": "USD", "source": "change-order-014.docx", "coordinate": {"kind": "docx", "paragraph": 2}, "quoted_text": "Approved change value: USD 125000"},
+    {"fact_key": "revised_completion_date", "value": "2027-03-15", "unit": null, "source": "change-order-014.docx", "coordinate": {"kind": "docx", "table": 1, "row": 1, "column": 1}, "quoted_text": "Revised completion date: 2027-03-15"},
+    {"fact_key": "installed_quantity", "value": 420, "unit": "m", "source": "site-report-31.txt", "coordinate": {"kind": "text", "line_start": 2, "line_end": 2}, "quoted_text": "Installed quantity: 420 m"},
+    {"fact_key": "invoice_amount", "value": 122500, "unit": "USD", "source": "invoice-1042.md", "coordinate": {"kind": "markdown", "line_start": 2, "line_end": 2}, "quoted_text": "Invoice amount: USD 122500"}
+  ],
+  "conflicts": [
+    {"fact_key": "approved_change_value", "values": [100000, 125000], "resolution": "human review required"}
+  ],
+  "findings": {
+    "passed": ["contract-floor", "invoice-match", "quantity-floor"],
+    "failed": ["change-cap", "completion-deadline"]
+  },
+  "excluded_claims": [
+    {"fact_key": "savings_projection", "value": "USD 20000", "source": "construction-contract.pdf", "reason": "unsupported"}
+  ],
+  "citation_coverage": 1.0,
+  "expected_review_items": 5,
+  "provider_calls": 0,
+  "provider_cost_usd": 0.0
+}

@@ -1,0 +1,31 @@
+# Local execution workspaces
+.worktrees/
+.superpowers/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Node
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Runtime data and logs
+.data/
+.recording/
+*.log
+
+# Temporary assignment source renders
+tmp/

@@ -1,0 +1,8 @@
+sample,timestamp_utc,condition,elapsed_ms,exit_code,cold_pull
+1,2026-08-23T17:07:56.191848+00:00,warm_cached_configuration,333.925,0,not_measured
+2,2026-08-23T17:07:56.496204+00:00,warm_cached_configuration,303.909,0,not_measured
+3,2026-08-23T17:07:56.791804+00:00,warm_cached_configuration,295.565,0,not_measured
+4,2026-08-23T17:07:57.088354+00:00,warm_cached_configuration,296.731,0,not_measured
+5,2026-08-23T17:07:57.374575+00:00,warm_cached_configuration,285.916,0,not_measured
+6,2026-08-23T17:07:57.667522+00:00,warm_cached_configuration,293.141,0,not_measured
+7,2026-08-23T17:07:57.956806+00:00,warm_cached_configuration,289.107,0,not_measured

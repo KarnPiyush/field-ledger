@@ -1,0 +1,13 @@
+{
+  "sample_count": 7,
+  "formula": "p50=median; p95=nearest-rank ceil(0.95*n)",
+  "p50_ms": 20.477,
+  "p95_ms": 26.645,
+  "minimum_ms": 17.414,
+  "maximum_ms": 26.645,
+  "population_stdev_ms": 3.619,
+  "citation_coverage": 1.0,
+  "provider_calls": 0,
+  "provider_cost_usd": 0.0,
+  "raw_file": "workflow-raw.csv"
+}

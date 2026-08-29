@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "top_level": [
+    ".dockerignore",
+    ".env.example",
+    ".gitignore",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "PROGRESS.md",
+    "README.md",
+    "TASK.md",
+    "VERSION",
+    "compose.yaml",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "pyproject.toml",
+    "tsconfig.base.json",
+    "uv.lock"
+  ],
+  "trees": [
+    "apps",
+    "demo",
+    "docs",
+    "extensions",
+    "packages",
+    "scripts"
+  ],
+  "excluded_prefixes": [
+    "docs/reviews",
+    "docs/superpowers"
+  ],
+  "approved_binary_sha256": {
+    "apps/api/tests/fixtures/change_order.docx": "e797a0879214dde2c5d6631d6c2e6c1865d76a7385cdaf424f2f9902bcc0c54c",
+    "apps/api/tests/fixtures/contract.pdf": "9f97df18a5ed55361ad5b582c37482a09cf512fa1139ef560655769dd75db251",
+    "apps/mobile/public/evidence/site-report-31-page-6.png": "f1fd9d35bc140afaf292e5875f896bd2476ea660dc4b4370e96d90c5c4efbfa1",
+    "demo/fieldledger-superdocs-demo.mp4": "6248cf8488707e931f9ce375ac3197afbd485c962a3b1e1321b101d01a66d86b",
+    "demo/fixtures/change-order-014.docx": "e797a0879214dde2c5d6631d6c2e6c1865d76a7385cdaf424f2f9902bcc0c54c",
+    "demo/fixtures/construction-contract.pdf": "9f97df18a5ed55361ad5b582c37482a09cf512fa1139ef560655769dd75db251",
+    "demo/video-proof/contact-sheet.png": "67cd1c89b08635652532287050af73c022ef9f00ac60b78013bf8a717ae8aa5f",
+    "demo/video-proof/frame-010.png": "59ed6afdcd8a94734b9dad1f860fdc7da89c0f0faed10b2cb0bdc2ef6acb768d",
+    "demo/video-proof/frame-030.png": "e72e4b98dccbde91e64db70d25c7ee03f9af9f5c1e52b5a41e0d3659c8873476",
+    "demo/video-proof/frame-055.png": "847506724d6e1527ce11fd89ef5c9424bbe984bf527ddbcf1e7b7702f2e0b7c9",
+    "demo/video-proof/frame-090.png": "23f23ccbc2f5d0c2f5f85fc0eee00ed3b5dd14d20cb0aa35eb7ef8311207d0b5",
+    "demo/video-proof/frame-125.png": "da181fa82eef785dafe02c6cfc96ce866b85ca95d63fb88d26d5a86294973b7a",
+    "demo/video-proof/frame-150.png": "b5f0e9acf38867981946da20446c760f7e5d5384d4cca04fca9f8abeae5ee21d",
+    "demo/video-proof/frame-180.png": "e2d8c5f388b0c9bc35018bfde6000f072aac175adbf6e4da34ab5135d36f4aef",
+    "demo/video-proof/frame-210.png": "10f2c5f3fdfaac33f9b9342b7fb4e7c66f775b38608a9b33964ffbc0b2387764",
+    "docs/images/fieldledger-mobile-review.png": "84f659f9544e030a787735d7210f9b2c967a4281c38cc533b95aad5127c13225",
+    "extensions/word/public/icons/fieldledger-32.png": "0e591c094eae12d8f74108c4f73f405ec226b62bf4ed7f45601a569563b1f305",
+    "extensions/word/public/icons/fieldledger-80.png": "c2d413620bcd8a722b901b32e0a0bb6fbed0fd75d97490f7b05440c0c4e4ece6",
+    "extensions/word/screenshots/word-taskpane-330.png": "b181aa13b76e4d22dc7c573871a6e42e909ba0c60fed9dc746cb0ac6fbf3432e",
+    "extensions/word/screenshots/word-taskpane-conflict-330.png": "c5877f5a55b909834dce7ceb586c2e1ea644814b2b2d958518e0d774ad669db0",
+    "extensions/word/screenshots/word-taskpane-desktop.png": "66f85f56b1e0da5b0715dddd967e9151ec5c413eb52a6a9a7c34e2102e5e5a72"
+  }
+}

@@ -1,0 +1,19 @@
+FieldLedger opens through the real local API. An authenticated reviewer seeds a construction contract, signed change order, site report, invoice, and review rules. The Riverside Medical Center batch is Change order fourteen and contains five cited items. The unsupported savings claim remains excluded rather than being turned into confident prose.
+
+The operations view distinguishes processing, review ready, completed, failed, cancelled, and reconciliation states. PostgreSQL owns these states. Worker fencing blocks an expired worker from committing late, and every terminal or reviewable outcome clears loading and leaves a recovery path.
+
+The phone opens the feeder allowance item. The value changes from forty-two thousand five hundred dollars to forty-seven thousand two hundred fifty dollars. The reviewer sees the signed change-order paragraph that supports the new value while the conflicting site-report value stays visible for comparison.
+
+The browser now loses network access. All five review items are decided offline. Item two is rejected with a note and the other four are approved. FieldLedger says saved on this phone, never applied. After a full reload, IndexedDB restores one ordered five-decision command with its original idempotency identity.
+
+Reconnect sends one batch request containing all five item identifiers in authoritative order. The backend applies the batch once, and the queue changes to Applied. A repeated online event sends no second request. The audit count increases by exactly one with review decisions applied, actor demo-reviewer, and source user interface.
+
+A separate deterministic browser scenario changes a reviewed dependency and receives a real stale response. That verified path stops before application and refreshes authoritative evidence. It is not presented here as part of the successful reconnect. Queue export is likewise a recovery tool for unreadable local state, not evidence that a decision reached the backend.
+
+The backend-connected Word browser task pane stores its ordered instruction in document settings. The instruction survives reopening. When the document fingerprint moves, reconnect stops at Needs refresh, says nothing was applied, and sends no edit request.
+
+The next Word instruction simulates a response lost after dispatch. FieldLedger shows Needs reconciliation. One non-mutating lookup reuses the original idempotency key, confirms the one server application, and makes Open proposal review available. The handoff targets the exact seeded review batch without editing Word content automatically.
+
+This demo uses synthetic data and the deterministic no-key adapter. It does not claim a live SuperDocs request, native Word sideload, scanned PDF optical character recognition, deployment, or upload. The audited package stays local, uses an explicit tracked manifest, scans approved content, and writes outside the Git checkout.
+
+FieldLedger makes one promise. A change is either supported, reviewable, fresh, and auditable, or it stops before application and tells the human what changed.

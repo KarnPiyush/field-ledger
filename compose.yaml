@@ -1,0 +1,127 @@
+x-api-environment: &api-environment
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-fieldledger}:${POSTGRES_PASSWORD:-fieldledger}@db:5432/${POSTGRES_DB:-fieldledger}
+  FIELDLEDGER_PROVIDER: ${FIELDLEDGER_PROVIDER:-deterministic}
+  FIELDLEDGER_LOG_LEVEL: ${FIELDLEDGER_LOG_LEVEL:-INFO}
+  FIELDLEDGER_LOCAL_DEMO: ${FIELDLEDGER_LOCAL_DEMO:-false}
+  FIELDLEDGER_SESSION_SIGNING_SECRET: ${FIELDLEDGER_SESSION_SIGNING_SECRET:-}
+  FIELDLEDGER_DEMO_BOOTSTRAP_SECRET: ${FIELDLEDGER_DEMO_BOOTSTRAP_SECRET:-}
+  FIELDLEDGER_DEMO_IDENTITIES: ${FIELDLEDGER_DEMO_IDENTITIES:-}
+  FIELDLEDGER_SESSION_ISSUER: ${FIELDLEDGER_SESSION_ISSUER:-fieldledger-local}
+  FIELDLEDGER_SESSION_AUDIENCE: ${FIELDLEDGER_SESSION_AUDIENCE:-fieldledger-clients}
+  FIELDLEDGER_POLICY_CONTENT_HASH: ${FIELDLEDGER_POLICY_CONTENT_HASH:-sha256:fieldledger-policy-v1}
+  FIELDLEDGER_PROVIDER_TIMEOUT_SECONDS: ${FIELDLEDGER_PROVIDER_TIMEOUT_SECONDS:-15}
+  SUPERDOCS_API_KEY: ${SUPERDOCS_API_KEY:-}
+  FIELDLEDGER_WATCHER_ENABLED: ${FIELDLEDGER_WATCHER_ENABLED:-false}
+  FIELDLEDGER_WATCHER_INBOX: ${FIELDLEDGER_WATCHER_INBOX:-data/inbox}
+  FIELDLEDGER_WATCHER_PROJECT_ID: ${FIELDLEDGER_WATCHER_PROJECT_ID:-}
+
+x-api-service: &api-service
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+  environment: *api-environment
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fieldledger}
+      POSTGRES_USER: ${POSTGRES_USER:-fieldledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fieldledger}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  api:
+    <<: *api-service
+    ports:
+      - "127.0.0.1:${FIELDLEDGER_API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  worker:
+    <<: *api-service
+    command: ["fieldledger-worker"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import fieldledger"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  watcher:
+    <<: *api-service
+    command: ["fieldledger-watcher"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "fieldledger.watcher", "--health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  mobile:
+    build:
+      context: .
+      dockerfile: apps/mobile/Dockerfile
+    environment:
+      FIELDLEDGER_API_TARGET: ${FIELDLEDGER_API_TARGET:-http://api:8000}
+      FIELDLEDGER_DEMO_BOOTSTRAP_SECRET: ${FIELDLEDGER_DEMO_BOOTSTRAP_SECRET:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${MOBILE_PORT:-4173}:4173"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:4173').then(response => { if (!response.ok) process.exit(1) })"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  word:
+    build:
+      context: .
+      dockerfile: extensions/word/Dockerfile
+      args:
+        VITE_FIELDLEDGER_REVIEW_URL: http://127.0.0.1:${MOBILE_PORT:-4173}
+    environment:
+      FIELDLEDGER_API_TARGET: ${FIELDLEDGER_API_TARGET:-http://api:8000}
+      FIELDLEDGER_DEMO_BOOTSTRAP_SECRET: ${FIELDLEDGER_DEMO_BOOTSTRAP_SECRET:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WORD_PORT:-4174}:4174"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:4174/taskpane.html').then(response => { if (!response.ok) process.exit(1) })"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

@@ -49,7 +49,7 @@ REQUIRED_PATHS = (
     "docs/submission/measurement.md",
     "docs/submission/limitations.md",
     "docs/submission/requirement-matrix.md",
-    "docs/demo/narration-script.md",
+    "demo/narration.txt",
     "demo/fieldledger-superdocs-demo.mp4",
     "demo/fixtures/oracle.json",
     "demo/measurements/workflow-raw.csv",
@@ -80,7 +80,36 @@ def run_delivery(*arguments: str, check: bool = True) -> subprocess.CompletedPro
 
 def markdown_links(path: Path) -> list[str]:
     content = path.read_text(encoding="utf-8")
-    return re.findall(r"(?<!!)\[[^\]]+\]\(([^)]+)\)", content)
+    return re.findall(r"\[[^\]]*\]\(([^)]+)\)", content)
+
+
+def tracked_markdown() -> tuple[Path, ...]:
+    if not (ROOT / ".git").exists():
+        return tuple(path for path in delivery.package_paths() if path.suffix == ".md")
+    result = subprocess.run(
+        ["git", "ls-files", "-z", "--", "*.md"],
+        cwd=ROOT, check=True, capture_output=True, text=True, encoding="utf-8",
+    )
+    return tuple(ROOT / name for name in result.stdout.split("\0") if name)
+
+
+def test_markdown_inventory_supports_unzipped_delivery(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    monkeypatch.setitem(tracked_markdown.__globals__, "ROOT", tmp_path)
+    files = [tmp_path / "README.md", tmp_path / "diagram.png"]
+    monkeypatch.setattr(delivery, "package_paths", lambda: files)
+    assert tracked_markdown() == (files[0],)
+
+
+def test_markdown_links_include_images_and_missing_targets(tmp_path: Path) -> None:
+    document = tmp_path / "guide.md"
+    document.write_text(
+        "[source](missing.md) ![diagram](missing.png) [](empty-label.md)",
+        encoding="utf-8",
+    )
+    assert markdown_links(document) == ["missing.md", "missing.png", "empty-label.md"]
+    assert all(not (document.parent / link).exists() for link in markdown_links(document))
 
 
 def percentile_nearest_rank(values: list[float], percentile: float) -> float:
@@ -616,7 +645,7 @@ def test_delivery_scripts_have_no_remote_publish_path() -> None:
 
 def test_internal_markdown_links_resolve() -> None:
     broken: list[str] = []
-    for document in (ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md"))):
+    for document in tracked_markdown():
         for raw_link in markdown_links(document):
             target_text = unquote(raw_link.split("#", 1)[0]).strip()
             if not target_text or "://" in target_text or target_text.startswith("mailto:"):
@@ -704,28 +733,24 @@ def test_video_probe_and_narration_cover_required_beats() -> None:
     assert b"SUPERDOCS_API_KEY" not in video_bytes
     assert b"BEGIN PRIVATE KEY" not in video_bytes
     assert re.search(rb"\bsk-[A-Za-z0-9_-]{20,}\b", video_bytes) is None
-    narration = (ROOT / "docs" / "demo" / "narration-script.md").read_text(encoding="utf-8")
+    narration = (ROOT / "demo" / "narration.txt").read_text(encoding="utf-8")
     beats = (
-        "document pile",
-        "citation",
+        "construction contract",
+        "cited",
         "offline",
-        "mixed decisions",
+        "rejected with a note",
         "stale",
         "reconnect",
-        "apply once",
+        "applies the batch once",
         "proposal review",
         "export",
         "audit",
         "Word",
-        "local-only",
+        "deterministic no-key",
     )
     assert all(beat.casefold() in narration.casefold() for beat in beats)
-    timestamps = [
-        int(minutes) * 60 + int(seconds)
-        for minutes, seconds in re.findall(r"\b(\d):(\d{2})\b", narration)
-    ]
-    assert timestamps == sorted(timestamps)
-    assert timestamps[-1] + 10 <= probe["duration_seconds"]
+    # The retained narration is spoken text, not a timestamped shot list.
+    assert 300 <= len(narration.split()) <= 800
 
 
 def test_video_recorder_asserts_authoritative_reconnect_and_audit_delta() -> None:
@@ -789,11 +814,13 @@ def test_documented_api_and_mcp_names_match_executable_contracts() -> None:
 
 
 def test_requirement_matrix_proof_paths_are_packaged() -> None:
-    matrix = (ROOT / "docs" / "submission" / "requirement-matrix.md").read_text(
-        encoding="utf-8"
-    )
+    matrix = ROOT / "docs" / "submission" / "requirement-matrix.md"
     package_names = {path.relative_to(ROOT).as_posix() for path in delivery.package_paths()}
-    proof_paths = re.findall(r"`([^`]+\.(?:png|mp4))`", matrix)
+    proof_paths = [
+        (matrix.parent / link).resolve().relative_to(ROOT).as_posix()
+        for link in markdown_links(matrix)
+        if link.endswith((".png", ".mp4"))
+    ]
 
     assert proof_paths
     assert all(path in package_names for path in proof_paths)

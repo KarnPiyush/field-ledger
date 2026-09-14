@@ -2,20 +2,27 @@
 
 ```mermaid
 flowchart TB
-  Sources[Construction pile] --> Ingest[Immutable versions and cited chunks]
-  Ingest --> Stages[Classify > Extract > Reconcile > Check rules > Draft]
-  Stages --> Review[Human review batch]
-  Review --> Phone[Phone offline decisions]
-  Review --> Word[Word offline instructions]
-  Phone --> Guard[Dependency preflight and ordered drain]
-  Word --> Guard
-  Guard -->|unchanged| Commit[Idempotent apply and audit]
-  Guard -->|changed or unknown| Stop[Stale or reconcile: nothing applied]
-  Commit --> Proposal[Proposal review, export, audit]
-  DB[(PostgreSQL)] --- Ingest
-  DB --- Stages
+  Sources[Construction sources and rules] --> Ingest[Immutable versions and citations]
+  Ingest --> Stages[Deterministic analysis stages]
+  Stages --> Artifacts[Cited register and brief / pinned run]
+  Artifacts --> Edit[Separate provider edit request]
+  Edit --> Provider[Deterministic adapter or optional SuperDocs]
+  Provider --> Review[Pending change review batch]
+  Review --> Phone[Phone cached review and IndexedDB drafts]
+  Phone --> Queue[One ordered batch command]
+  Queue --> Guard[Confirmation and freshness checks]
+  Guard -->|changed before dispatch| Stale[Stop and refresh review]
+  Guard -->|valid| Apply[Provider approval and authoritative read]
+  Apply -->|confirmed| Result[Result and audit / further review or export]
+  Apply -->|unknown| Reconcile[Stop and reconcile / do not assume rollback]
+  Word[Word instruction in Office settings] --> Fingerprint[Check document and selection fingerprints]
+  Fingerprint --> Edit
+  DB[(PostgreSQL authority)] --- Ingest
+  DB --- Artifacts
   DB --- Review
-  DB --- Commit
+  DB --- Result
 ```
 
-**Authority:** PostgreSQL, never browser storage. **Recovery:** leases, heartbeats, fencing tokens, idempotency keys, content-addressed outputs, and startup reclaim. **Trust:** exact citations and dependency vectors; source text cannot invoke tools. **Human gate:** UI confirmation is required for mutation. **Offline:** Dexie on phone and Office document settings in Word share one pure queue contract. **Provider:** deterministic/no-key by default; optional SuperDocs access stays server-only. **Delivery:** local Git and allowlisted ZIP, with no remote transfer.
+**Authority:** PostgreSQL; client storage is an offline buffer. **Worker recovery:** leases, fencing and transactional checkpoints. **Review safety:** authorization, reviewed dependency hashes, short-lived confirmation and request identity checks. **Provider:** no-key deterministic mode by default; optional SuperDocs credentials stay server-side. **Word:** proposal handoff, not automatic native write-back. **Unknown outcome:** reconciliation, not proof that nothing happened.
+
+Read the [code map and transaction boundaries](architecture.md), [walkthrough](user-flow.md), and [known limitations](submission/limitations.md). The repository is published; hosting, live SuperDocs acceptance and native Word round-trip are not established by publication.

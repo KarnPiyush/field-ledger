@@ -1,5 +1,7 @@
 # Progress
 
+This table records the original build's reported milestones, not a fresh certification of assignment completeness. Current scope and recovery qualifications are in [limitations](docs/submission/limitations.md); runnable evidence is in the [requirement matrix](docs/submission/requirement-matrix.md). Test existence and historical green runs do not prove live-provider or native-host acceptance.
+
 | Phase | Status | Evidence |
 |---|---|---|
 | Foundation and contracts | Complete | Python/TypeScript contracts, migrations, Compose |
@@ -12,4 +14,4 @@
 | Delivery material | Complete | Operator/docs/measurement/package gates and API-backed video proof are reproducible and green |
 | Consolidated review and final ZIP | Complete | Whole-project review fixes, clean-copy Quick Start, and audited 300-file ZIP |
 
-No remote was configured and no external transfer occurred.
+Source and included artifacts are now published in the private `KarnPiyush/field-ledger` repository. This does not verify reviewer access, hosted deployment, public contribution, or form/Drive submission.

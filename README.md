@@ -1,10 +1,24 @@
 # FieldLedger
 
-FieldLedger turns a construction document pile into a cited change register and executive brief. A human reviews every proposed change. The phone PWA and Word task pane keep ordered instructions locally when connectivity drops, then stop before applying anything stale or ambiguous.
+FieldLedger turns a construction document pile into a cited change register and executive brief, then lets a human review proposed document changes on a phone, including offline. Local drafts are not applied decisions: the server must confirm the outcome. The Word companion queues instructions and opens review; it does not write approved content back into Word automatically.
+
+## Start Here
+
+| Question | Read |
+|---|---|
+| What happens end to end? | [User walkthrough](docs/user-flow.md) |
+| How do components fit together? | [One-page diagram](docs/architecture-one-page.md) |
+| Where is each responsibility implemented? | [Architecture and code map](docs/architecture.md) |
+| Which assignment parts have evidence? | [Requirement matrix](docs/submission/requirement-matrix.md) |
+| What remains limited or unverified? | [Known limitations](docs/submission/limitations.md) |
+
+The assigned Task 2 build is **Offline-capable review and approval client for a phone**. The common document-analysis task and optional Word companion are separate parts of this repository. The default demo uses deterministic analysis and a no-key provider; it is not a live SuperDocs acceptance run.
 
 ![FieldLedger cited phone review](docs/images/fieldledger-mobile-review.png)
 
 ## Quick Start
+
+**Current checkout caveat:** the tracked contract PDF bytes disagree with their approved fixture hashes. This predates the documentation update and blocks canonical demo seeding and package verification. The commands below describe the intended deterministic run; see [the exact blocker](docs/submission/limitations.md) before attempting fresh acceptance.
 
 Prerequisites: Windows 11 or a POSIX shell, Docker Desktop with Compose, Git, Python 3.12 through `uv`, Node 22, and pnpm 11.
 
@@ -23,7 +37,7 @@ No SuperDocs API key is required. The command uses the deterministic provider, b
 
 ## Demo Flow
 
-Open the Riverside phone batch, inspect the signed change-order citation, and save mixed decisions for all five items while offline. Queue view shows one ordered five-decision command. Reconnect once, verify the Applied row and the single new `review.decisions_applied` audit event, then open the Word browser demo to exercise moved-document and lost-response recovery without changing Word content. Stale dependency behavior is covered by the browser tests as a separate stop path. The full walkthrough is in [the narration script](docs/demo/narration-script.md) and [the local video](demo/fieldledger-superdocs-demo.mp4).
+Open the Riverside phone batch while online so its review data is cached. Inspect the signed change-order citation, then save mixed decisions for all five items while offline. Queue view shows one ordered five-decision command. Reconnect once and check the Applied row and one new `review.decisions_applied` audit event. See the [walkthrough](docs/user-flow.md), [recorded narration](demo/narration.txt), and [demo video](demo/fieldledger-superdocs-demo.mp4). These recordings document the original deterministic run; the narration's local-only delivery statement is historical.
 
 ## Architecture
 
@@ -57,7 +71,7 @@ pnpm build
 docker compose config --quiet
 ```
 
-Delivery contracts also resolve documentation links, render Mermaid, validate fixture citations, recompute measurement summaries, probe representative video frames, scan for secret patterns, and audit the package allowlist.
+Delivery contracts also resolve documentation links, parse Mermaid, validate fixture citations, recompute measurement summaries, probe representative video frames, scan for secret patterns, and audit the package allowlist. Test files describe executable checks, not proof that every check passed on your machine.
 
 ## Measurements
 
@@ -81,4 +95,6 @@ Native Word desktop sideload is not claimed; the Office bridge is adapter-tested
 
 ## Delivery Scope
 
-This is a new local Git project. It has no Git remote and is not pushed, hosted, or uploaded. `scripts/delivery-manifest.json` limits packaging to tracked delivery files, excludes internal review/spec material, and pins every approved binary hash. `scripts/package.*` scans raw and extractable content for credential and host-home patterns, writes a temporary ZIP outside every checkout, audits it, and atomically replaces the requested output only after success. Final clean-unzip acceptance was performed after the consolidated review.
+Source and included artifacts are published in [KarnPiyush/field-ledger](https://github.com/KarnPiyush/field-ledger). The repository is private as of 14 September 2026; reviewers need access. Publication does not establish a hosted application, live provider acceptance, or submission-form/Drive delivery.
+
+`scripts/delivery-manifest.json` limits packaging to tracked delivery files and pins approved binary hashes. The package command scans content, writes a temporary ZIP outside the checkout, and replaces the requested output only after its checks pass. See [operations](docs/operations.md) for packaging and verification commands.

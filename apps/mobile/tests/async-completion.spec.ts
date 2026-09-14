@@ -29,7 +29,7 @@ test("PreviewReady completes the drain and restores the sync control", async ({ 
   await expect(page.getByText(/^Syncing /)).toHaveCount(0);
 });
 
-test("lost response becomes a retryable reconciliation and reuses the idempotency key", async ({ page }) => {
+test("lost response survives reload and replays the original token, body and key", async ({ page }) => {
   const backend = await installMobileBackend(page, { decisionOutcome: "lost" });
   await page.goto("/inbox");
   await page.getByRole("link", { name: /Riverside Medical Center/ }).click();
@@ -39,6 +39,7 @@ test("lost response becomes a retryable reconciliation and reuses the idempotenc
   await page.getByRole("link", { name: "Queue" }).click();
 
   await expect(page.getByText("Reconcile", { exact: true })).toBeVisible();
+  await page.reload();
   const reconcile = page.getByRole("button", { name: "Reconcile outcome" });
   await expect(reconcile).toBeEnabled();
   backend.decisionOutcome = "completed";
@@ -46,6 +47,8 @@ test("lost response becomes a retryable reconciliation and reuses the idempotenc
   await expect(page.getByText("Applied", { exact: true })).toBeVisible();
   expect(backend.decisionRequests).toBe(2);
   expect(new Set(backend.idempotencyKeys).size).toBe(1);
+  expect(backend.confirmationRequests).toBe(1);
+  expect(backend.decisionBodies[1]).toEqual(backend.decisionBodies[0]);
 });
 
 test("corrupt queue stays visible for export and explicit reset", async ({ page }) => {

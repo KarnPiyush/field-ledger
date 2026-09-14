@@ -10,6 +10,7 @@ import {
 } from "@fieldledger/offline-queue";
 
 import type { FieldLedgerDatabase } from "./database";
+import { unpreparedSubmission } from "./submissions";
 import type {
   MobileDecisionCommand,
   MobileDecisionPayload,
@@ -67,6 +68,7 @@ async function allocate<T>(db: FieldLedgerDatabase, input: NewCommand<T>): Promi
     attempts: 0,
   };
   await db.offlineCommands.add(command as MobileDecisionCommand);
+  await db.submissions.add(unpreparedSubmission(command));
   return command;
 }
 
@@ -82,7 +84,7 @@ export class DexieQueueStore<T = MobileDecisionPayload> implements QueueStore<T>
   }
 
   public async allocateAndAppend(input: NewCommand<T>): Promise<QueueCommand<T>> {
-    return this.db.transaction("rw", this.db.offlineCommands, () => allocate(this.db, input));
+    return this.db.transaction("rw", [this.db.offlineCommands, this.db.submissions], () => allocate(this.db, input));
   }
 
   public async compareAndSet(
@@ -118,7 +120,7 @@ export class DecisionStore {
     }
     const deduplicationKey = `${input.batchId}:${input.reviewedDigest}:decisions`;
 
-    return this.db.transaction("rw", this.db.drafts, this.db.offlineCommands, async () => {
+    return this.db.transaction("rw", [this.db.drafts, this.db.offlineCommands, this.db.submissions], async () => {
       const existing = await this.db.offlineCommands
         .where("[clientId+deduplicationKey]")
         .equals([this.clientId, deduplicationKey])

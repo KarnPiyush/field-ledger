@@ -1,5 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 
+import { unpreparedSubmission, type SubmissionRecord } from "./submissions";
+
 import type {
   AuditRecord,
   DraftRecord,
@@ -17,6 +19,7 @@ export class FieldLedgerDatabase extends Dexie {
   batches!: EntityTable<ReviewBatchRecord, "id">;
   drafts!: EntityTable<DraftRecord, "id">;
   offlineCommands!: EntityTable<MobileDecisionCommand, "id">;
+  submissions!: EntityTable<SubmissionRecord, "id">;
   auditRows!: EntityTable<AuditRecord, "id">;
   syncMetadata!: EntityTable<SyncMetadataRecord, "projectId">;
   providerJobs!: EntityTable<ProviderJobRecord, "id">;
@@ -42,6 +45,23 @@ export class FieldLedgerDatabase extends Dexie {
       auditRows: "&id, projectId, [projectId+createdAt]",
       syncMetadata: "&projectId",
       providerJobs: "&id, projectId, [projectId+status]",
+    });
+
+    this.version(3).stores({ submissions: "&id" }).upgrade(async (transaction) => {
+      const commands: MobileDecisionCommand[] = await transaction.table("offlineCommands").toArray();
+      // Older attempted commands have unknown original tokens. Do not invent replacements.
+      await transaction.table("submissions").bulkAdd(
+        commands
+          .filter((command) => command.state === "pending" && command.attempts === 0)
+          .flatMap((command) => {
+            try {
+              return [unpreparedSubmission(command)];
+            } catch {
+              // Preserve malformed rows for the existing export/reset recovery UI.
+              return [];
+            }
+          }),
+      );
     });
   }
 }

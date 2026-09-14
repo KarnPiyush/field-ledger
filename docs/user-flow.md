@@ -53,7 +53,8 @@ sequenceDiagram
     Store-->>Reviewer: Stop queue with generic fetch error
   else confirmation granted
     API-->>Store: Confirmation token
-    Store->>API: Decisions plus original Idempotency-Key
+    Store->>Store: Persist original token before dispatch (first writer wins)
+    Store->>API: Decisions plus original token and Idempotency-Key
     API->>DB: Validate, lock, recheck freshness and reserve
     API->>Provider: Approve or reject proposed changes
     alt authoritative outcome known
@@ -69,7 +70,7 @@ sequenceDiagram
   end
 ```
 
-This shows the successful and safety paths, not a claim that every retry resolves automatically. The phone does not send a separate freshness-preflight request: confirmation checks the dependencies, and decision submission checks them again. A change between those calls can still be rejected. A confirmation-stage conflict currently gets a generic phone fetch error rather than detailed stale information. The fresh-token replay mismatch is documented in [known limitations](submission/limitations.md).
+This shows the successful and safety paths, not a claim that every retry resolves automatically. The phone does not send a separate freshness-preflight request: confirmation checks the dependencies, and decision submission checks them again. A change between those calls can still be rejected. A confirmation-stage conflict currently gets a generic phone fetch error rather than detailed stale information. Retries skip confirmation issuance once the original token is saved and replay the same body and key, including after reload. Generic conflicts remain uncertain rather than allowing stale-review replacement. Attempted legacy commands without their original token and expired unfinished requests need operator verification; see [known limitations](submission/limitations.md).
 
 ## What the status means
 

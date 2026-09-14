@@ -10,6 +10,8 @@ import type {
 } from "@fieldledger/offline-queue";
 
 import type { MobileDecisionCommand, MobileDecisionPayload } from "../data/types";
+import type { FieldLedgerDatabase } from "../data/database";
+import { SubmissionStore } from "../data/submissions";
 
 interface QueueSenderOptions {
   isOnline: () => boolean;
@@ -49,11 +51,7 @@ function staleFromError(
 ): Extract<SendResult, { kind: "stale" }> | null {
   if (!(error instanceof FieldLedgerApiError) || error.status !== 409) return null;
   const rawChanges = error.problem?.changes;
-  const changes: unknown[] | null = Array.isArray(rawChanges)
-    ? rawChanges
-    : String(error.problem?.type).endsWith("/review-conflict")
-      ? []
-      : null;
+  const changes: unknown[] | null = Array.isArray(rawChanges) ? rawChanges : null;
   if (changes === null) return null;
   const valid = changes.every(
     (change) =>
@@ -84,12 +82,16 @@ function staleFromError(
 
 export class MobileQueueSender implements Sender<MobileDecisionPayload> {
   private readonly options: QueueSenderOptions;
+  private readonly submissions: SubmissionStore;
 
   public constructor(
     private readonly client: FieldLedgerClient,
+    db: FieldLedgerDatabase,
+    private readonly clientId: string,
     options: Partial<QueueSenderOptions> = {},
   ) {
     this.options = { ...defaults, ...options };
+    this.submissions = new SubmissionStore(db);
   }
 
   public send(command: MobileDecisionCommand): Promise<SendResult> {
@@ -101,6 +103,14 @@ export class MobileQueueSender implements Sender<MobileDecisionPayload> {
   }
 
   private async submit(command: MobileDecisionCommand): Promise<SendResult> {
+    if (command.clientId !== this.clientId) {
+      return reconcile(
+        "submission-identity",
+        "Original reviewer required",
+        "This command was recorded by another phone identity. Restore that identity before reconciling.",
+        correlationId(),
+      );
+    }
     if (!this.options.isOnline()) {
       return {
         kind: "offline",
@@ -113,15 +123,47 @@ export class MobileQueueSender implements Sender<MobileDecisionPayload> {
       };
     }
 
-    let token: string;
+    let token: string | null;
     try {
-      const confirmation = await this.client.request(
-        "request_confirmation_api_v1_reviews__batch_id__confirmation_post",
-        { path: { batch_id: command.payload.batchId }, body: {} },
-      );
-      token = confirmation.token;
-    } catch (error) {
-      return this.beforeDispatchFailure(error);
+      token = await this.submissions.read(command);
+    } catch {
+      return this.submissionUnavailable();
+    }
+    if (token === null) {
+      let confirmation: components["schemas"]["ConfirmationResponse"] | null = null;
+      try {
+        confirmation = await this.client.request(
+          "request_confirmation_api_v1_reviews__batch_id__confirmation_post",
+          { path: { batch_id: command.payload.batchId }, body: {} },
+        );
+      } catch (error) {
+        // A competing tab may have saved and applied the original request meanwhile.
+        try {
+          token = await this.submissions.read(command);
+        } catch {
+          return this.submissionUnavailable();
+        }
+        if (token === null) return this.beforeDispatchFailure(error);
+      }
+      if (token === null) {
+        if (confirmation === null) return this.submissionUnavailable();
+        try {
+          token = await this.submissions.read(command);
+        } catch {
+          return this.submissionUnavailable();
+        }
+      }
+      if (token === null) {
+        if (confirmation === null) return this.submissionUnavailable();
+        if (confirmation.dependency_digest !== command.reviewedDigest) {
+          return reconcile("confirmation-digest", "Review needs verification", "The confirmation does not match the saved review. No decision was sent by this attempt; another tab's outcome may still need verification.", correlationId());
+        }
+        try {
+          token = await this.submissions.save(command, confirmation.token);
+        } catch {
+          return this.submissionUnavailable();
+        }
+      }
     }
 
     let response: components["schemas"]["ApplyResult"];
@@ -182,6 +224,17 @@ export class MobileQueueSender implements Sender<MobileDecisionPayload> {
       };
     }
     return failed("fetch-error", "Could not contact FieldLedger", "Retry when the connection is available.");
+  }
+
+  private submissionUnavailable(): SendResult {
+    const id = correlationId();
+    this.options.log("Original submission could not be read or persisted", { correlationId: id });
+    return reconcile(
+      "submission-unavailable",
+      "Original request needs verification",
+      "The original confirmation could not be safely restored or saved. No decision was sent by this attempt. Restore storage or ask an operator to verify the existing command; do not replace its identity.",
+      id,
+    );
   }
 
   private async pollProvider(

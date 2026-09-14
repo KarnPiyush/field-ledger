@@ -86,7 +86,7 @@ review command
 
 Database atomicity does **not** roll back a remote provider mutation. Calls and subsequent reads can fail after the remote side changed; reconciliation must distinguish that from a pre-dispatch rejection. Some guarded calls hold database locks while waiting on provider I/O, which limits throughput.
 
-The queue stops behind stale, failed or uncertain earlier work. Phone polling accepts reviewable `PreviewReady` as well as completed outcomes and then refreshes authority; a new review round is not a finished document. Reconciliation is implemented but not universally proven: the phone obtains a fresh confirmation on replay while the server hashes that token into the request identity. See the [specific replay limitation](submission/limitations.md), rather than assuming a stable key alone guarantees recovery.
+The queue stops behind stale, failed or uncertain earlier work. Phone polling accepts reviewable `PreviewReady` as well as completed outcomes and then refreshes authority; a new review round is not a finished document. Before dispatch, the phone persists the original confirmation in a separate IndexedDB submission record. Retries reuse that token, command key and decisions; concurrent tabs use the first saved token. Missing or mismatched records stop for verification rather than minting a replacement. Local fake-provider tests cover lost-response replay across database reopen; live-provider recovery is not claimed. See [remaining recovery limits](submission/limitations.md).
 
 ## Why these choices?
 

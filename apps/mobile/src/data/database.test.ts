@@ -1,9 +1,11 @@
 import type { QueueCommand } from "@fieldledger/offline-queue";
+import Dexie from "dexie";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { FieldLedgerDatabase } from "./database";
 import { DecisionStore, DexieQueueStore } from "./queueStore";
 import { ReviewCache } from "./reviewCache";
+import { SubmissionStore } from "./submissions";
 import type { MobileDecisionPayload } from "./types";
 
 const PROJECT_A = "project-riverside";
@@ -34,7 +36,10 @@ describe("FieldLedger IndexedDB adapters", () => {
     };
 
     const first = await store.allocateAndAppend(input);
+    expect(await new SubmissionStore(db).read(first)).toBeNull();
+    await new SubmissionStore(db).save(first, "original-token");
     const replay = await store.allocateAndAppend({ ...input, id: "command-replay" });
+    expect(await new SubmissionStore(db).read(replay)).toBe("original-token");
     const second = await store.allocateAndAppend({
       ...input,
       id: "command-b",
@@ -125,6 +130,47 @@ describe("FieldLedger IndexedDB adapters", () => {
     expect(await db.offlineCommands.count()).toBe(0);
   });
 
+  it("rolls back drafts and commands when submission storage fails", async () => {
+    db.submissions.hook("creating", () => { throw new Error("receipt unavailable"); });
+    await expect(new DecisionStore(db, "phone-a").save({
+      projectId: PROJECT_A, batchId: "batch-1", itemId: "item-1", decision: "approve",
+      batchItemIds: ["item-1"], reviewedDigest: "digest-a", createdAt: "2026-08-23T09:40:00Z",
+    })).rejects.toThrow("receipt unavailable");
+    expect(await db.drafts.count()).toBe(0);
+    expect(await db.offlineCommands.count()).toBe(0);
+    expect(await db.submissions.count()).toBe(0);
+  });
+
+  it("migrates only never-attempted legacy commands without inventing original tokens", async () => {
+    const legacy = new Dexie(db.name);
+    legacy.version(2).stores({
+      sessions: "&key", projects: "&id", batches: "&id, projectId, [projectId+status]",
+      drafts: "&id, projectId, batchId, itemId",
+      offlineCommands: "&id, [clientId+sequence], &[clientId+deduplicationKey], projectId, state",
+      auditRows: "&id, projectId, [projectId+createdAt]", syncMetadata: "&projectId",
+      providerJobs: "&id, projectId, [projectId+status]",
+    });
+    const states = ["pending", "sending", "reconciliation_required", "failed", "pending"] as const;
+    const commands = states.map((state, index) => ({
+      schemaVersion: 1 as const, id: `legacy-${index}`, clientId: "phone-a", projectId: PROJECT_A,
+      sequence: index + 1, idempotencyKey: `phone-a:${index + 1}`, deduplicationKey: `batch-${index}`,
+      reviewedDigest: "digest-a", payloadHash: "payload-a",
+      payload: { batchId: `batch-${index}`, decisions: [{ item_id: "item-1", decision: "approve" as const }] },
+      state, attempts: index === 0 ? 0 : 1, createdAt: "2026-08-23T09:40:00Z",
+    }));
+    await legacy.table("offlineCommands").bulkAdd(commands);
+    await legacy.table("offlineCommands").add({ id: "malformed", state: "pending", attempts: 0 });
+    legacy.close();
+    await db.open();
+    expect(await db.offlineCommands.count()).toBe(6);
+    expect(await db.submissions.count()).toBe(1);
+    expect(await new SubmissionStore(db).read(commands[0]!)).toBeNull();
+    await expect(new DexieQueueStore(db).list()).rejects.toMatchObject({ name: "QueueSerializationError" });
+    for (const command of commands.slice(1)) {
+      await expect(new SubmissionStore(db).read(command)).rejects.toThrow("Original submission identity");
+    }
+  });
+
   it("never returns another project's cached batches or audit rows", async () => {
     await db.batches.bulkPut([
       { id: "batch-a", projectId: PROJECT_A, projectName: "Riverside", title: "CO-014", status: "pending", dependencyDigest: "a", items: [], cachedAt: "2026-08-23T08:52:00Z" },
@@ -153,10 +199,22 @@ describe("FieldLedger IndexedDB adapters", () => {
       createdAt: "2026-08-23T09:38:00.000Z",
     });
     const sending: QueueCommand<MobileDecisionPayload> = { ...pending, state: "sending", attempts: 1 };
+    const other = new FieldLedgerDatabase(db.name);
+    try {
+      const winners = await Promise.all([
+        new SubmissionStore(db).save(pending, "first-token"),
+        new SubmissionStore(other).save(pending, "second-token"),
+      ]);
+      expect(winners[0]).toBe(winners[1]);
 
-    expect(await store.compareAndSet(pending.id, "pending", sending)).toBe(true);
-    expect(await store.compareAndSet(pending.id, "pending", { ...sending, state: "applied" })).toBe(false);
-    expect((await db.offlineCommands.get(pending.id))?.state).toBe("sending");
+      expect(await store.compareAndSet(pending.id, "pending", sending)).toBe(true);
+      expect(await store.compareAndSet(pending.id, "pending", { ...sending, state: "applied" })).toBe(false);
+      expect((await db.offlineCommands.get(pending.id))?.state).toBe("sending");
+      expect(await new SubmissionStore(other).read(sending)).toBe(winners[0]);
+      expect(JSON.stringify(await db.offlineCommands.toArray())).not.toContain(winners[0]);
+    } finally {
+      other.close();
+    }
   });
 
   it("rejects a canonical IndexedDB command with an invalid mobile decision payload", async () => {

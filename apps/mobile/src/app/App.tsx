@@ -118,8 +118,8 @@ export function App({ db = fieldLedgerDb, initialize = defaultInitializer }: App
 
   const queueStore = useMemo(() => new DexieQueueStore(db), [db]);
   const sender = useMemo(
-    () => (runtime === null ? null : new MobileQueueSender(runtime.client)),
-    [runtime],
+    () => (runtime === null ? null : new MobileQueueSender(runtime.client, db, runtime.clientId)),
+    [runtime, db],
   );
   const decisions = useMemo(
     () => (runtime === null ? null : new DecisionStore(db, runtime.clientId)),
@@ -396,7 +396,10 @@ export function App({ db = fieldLedgerDb, initialize = defaultInitializer }: App
     if (runtime === null) return;
     setLoading(true);
     try {
-      await db.offlineCommands.clear();
+      await db.transaction("rw", [db.offlineCommands, db.submissions], async () => {
+        await db.offlineCommands.clear();
+        await db.submissions.clear();
+      });
       setQueueCorrupt(false);
       setStartupError(undefined);
       await loadSnapshot(runtime.projectId);
